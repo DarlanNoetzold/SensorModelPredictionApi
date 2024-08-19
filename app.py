@@ -7,14 +7,14 @@ app = FastAPI()
 
 # Carregar os modelos
 models = {
-    'cpu_usage': load('models/cpu_usage_model.joblib'),
-    'memory_usage': load('models/memory_usage_model.joblib'),
-    'thread_count': load('models/thread_count_model.joblib'),
-    'total_data_received': load('models/total_data_received_model.joblib'),
-    'total_data_filtered': load('models/total_data_filtered_model.joblib'),
-    'total_data_compressed': load('models/total_data_compressed_model.joblib'),
-    'total_data_aggregated': load('models/total_data_aggregated_model.joblib'),
-    'total_data_after_heuristics': load('models/total_data_after_heuristics_model.joblib'),
+    'cpu_usage': load('/app/models/cpu_usage_model.joblib'),
+    'memory_usage': load('/app/models/memory_usage_model.joblib'),
+    'thread_count': load('/app/models/thread_count_model.joblib'),
+    'total_data_received': load('/app/models/total_data_received_model.joblib'),
+    'total_data_filtered': load('/app/models/total_data_filtered_model.joblib'),
+    'total_data_compressed': load('/app/models/total_data_compressed_model.joblib'),
+    'total_data_aggregated': load('/app/models/total_data_aggregated_model.joblib'),
+    'total_data_after_heuristics': load('/app/models/total_data_after_heuristics_model.joblib'),
 }
 
 class PredictionRequest(BaseModel):
