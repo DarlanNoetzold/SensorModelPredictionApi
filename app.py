@@ -1,139 +1,118 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from flask import Flask, request, jsonify
 from joblib import load
 import numpy as np
-import os
 
-app = FastAPI()
+app = Flask(__name__)
 
-# Verificação de inicialização da aplicação
-print("Starting FastAPI application...")
+# Carregar os modelos
+models = {
+    'cpu_usage_catboost': load('/app/models/CPU Usage_CatBoost_model.joblib'),
+    'cpu_usage_knn': load('/app/models/CPU Usage_KNN_model.joblib'),
+    'cpu_usage_lightgbm': load('/app/models/CPU Usage_LightGBM_model.joblib'),
+    'cpu_usage_linear_regression': load('/app/models/CPU Usage_LinearRegression_model.joblib'),
+    'cpu_usage_mlp': load('/app/models/CPU Usage_MLP_model.joblib'),
+    'cpu_usage_random_forest': load('/app/models/CPU Usage_RandomForest_model.joblib'),
+    'cpu_usage_svr': load('/app/models/CPU Usage_SVR_model.joblib'),
+    'cpu_usage_xgboost': load('/app/models/CPU Usage_XGBoost_model.joblib'),
 
-# Carregar os modelos com tratamento de erros
-models = {}
+    'error_count_knn': load('/app/models/Error Count_KNN_model.joblib'),
+    'error_count_lightgbm': load('/app/models/Error Count_LightGBM_model.joblib'),
+    'error_count_linear_regression': load('/app/models/Error Count_LinearRegression_model.joblib'),
+    'error_count_mlp': load('/app/models/Error Count_MLP_model.joblib'),
+    'error_count_random_forest': load('/app/models/Error Count_RandomForest_model.joblib'),
+    'error_count_svr': load('/app/models/Error Count_SVR_model.joblib'),
+    'error_count_xgboost': load('/app/models/Error Count_XGBoost_model.joblib'),
 
-model_paths = {
-    'cpu_usage_catboost': '/app/models/CPU Usage_CatBoost_model.joblib',
-    'cpu_usage_knn': '/app/models/CPU Usage_KNN_model.joblib',
-    'cpu_usage_lightgbm': '/app/models/CPU Usage_LightGBM_model.joblib',
-    'cpu_usage_linear_regression': '/app/models/CPU Usage_LinearRegression_model.joblib',
-    'cpu_usage_mlp': '/app/models/CPU Usage_MLP_model.joblib',
-    'cpu_usage_random_forest': '/app/models/CPU Usage_RandomForest_model.joblib',
-    'cpu_usage_svr': '/app/models/CPU Usage_SVR_model.joblib',
-    'cpu_usage_xgboost': '/app/models/CPU Usage_XGBoost_model.joblib',
+    'memory_usage_catboost': load('/app/models/Memory Usage_CatBoost_model.joblib'),
+    'memory_usage_knn': load('/app/models/Memory Usage_KNN_model.joblib'),
+    'memory_usage_lightgbm': load('/app/models/Memory Usage_LightGBM_model.joblib'),
+    'memory_usage_linear_regression': load('/app/models/Memory Usage_LinearRegression_model.joblib'),
+    'memory_usage_mlp': load('/app/models/Memory Usage_MLP_model.joblib'),
+    'memory_usage_random_forest': load('/app/models/Memory Usage_RandomForest_model.joblib'),
+    'memory_usage_svr': load('/app/models/Memory Usage_SVR_model.joblib'),
+    'memory_usage_xgboost': load('/app/models/Memory Usage_XGBoost_model.joblib'),
 
-    'error_count_knn': '/app/models/Error Count_KNN_model.joblib',
-    'error_count_lightgbm': '/app/models/Error Count_LightGBM_model.joblib',
-    'error_count_linear_regression': '/app/models/Error Count_LinearRegression_model.joblib',
-    'error_count_mlp': '/app/models/Error Count_MLP_model.joblib',
-    'error_count_random_forest': '/app/models/Error Count_RandomForest_model.joblib',
-    'error_count_svr': '/app/models/Error Count_SVR_model.joblib',
-    'error_count_xgboost': '/app/models/Error Count_XGBoost_model.joblib',
+    'thread_count_catboost': load('/app/models/Thread Count_CatBoost_model.joblib'),
+    'thread_count_knn': load('/app/models/Thread Count_KNN_model.joblib'),
+    'thread_count_lightgbm': load('/app/models/Thread Count_LightGBM_model.joblib'),
+    'thread_count_linear_regression': load('/app/models/Thread Count_LinearRegression_model.joblib'),
+    'thread_count_mlp': load('/app/models/Thread Count_MLP_model.joblib'),
+    'thread_count_random_forest': load('/app/models/Thread Count_RandomForest_model.joblib'),
+    'thread_count_svr': load('/app/models/Thread Count_SVR_model.joblib'),
+    'thread_count_xgboost': load('/app/models/Thread Count_XGBoost_model.joblib'),
 
-    'memory_usage_catboost': '/app/models/Memory Usage_CatBoost_model.joblib',
-    'memory_usage_knn': '/app/models/Memory Usage_KNN_model.joblib',
-    'memory_usage_lightgbm': '/app/models/Memory Usage_LightGBM_model.joblib',
-    'memory_usage_linear_regression': '/app/models/Memory Usage_LinearRegression_model.joblib',
-    'memory_usage_mlp': '/app/models/Memory Usage_MLP_model.joblib',
-    'memory_usage_random_forest': '/app/models/Memory Usage_RandomForest_model.joblib',
-    'memory_usage_svr': '/app/models/Memory Usage_SVR_model.joblib',
-    'memory_usage_xgboost': '/app/models/Memory Usage_XGBoost_model.joblib',
+    'total_data_after_heuristics_catboost': load('/app/models/Total Data After Heuristics_CatBoost_model.joblib'),
+    'total_data_after_heuristics_knn': load('/app/models/Total Data After Heuristics_KNN_model.joblib'),
+    'total_data_after_heuristics_lightgbm': load('/app/models/Total Data After Heuristics_LightGBM_model.joblib'),
+    'total_data_after_heuristics_linear_regression': load('/app/models/Total Data After Heuristics_LinearRegression_model.joblib'),
+    'total_data_after_heuristics_mlp': load('/app/models/Total Data After Heuristics_MLP_model.joblib'),
+    'total_data_after_heuristics_random_forest': load('/app/models/Total Data After Heuristics_RandomForest_model.joblib'),
+    'total_data_after_heuristics_svr': load('/app/models/Total Data After Heuristics_SVR_model.joblib'),
+    'total_data_after_heuristics_xgboost': load('/app/models/Total Data After Heuristics_XGBoost_model.joblib'),
 
-    'thread_count_catboost': '/app/models/Thread Count_CatBoost_model.joblib',
-    'thread_count_knn': '/app/models/Thread Count_KNN_model.joblib',
-    'thread_count_lightgbm': '/app/models/Thread Count_LightGBM_model.joblib',
-    'thread_count_linear_regression': '/app/models/Thread Count_LinearRegression_model.joblib',
-    'thread_count_mlp': '/app/models/Thread Count_MLP_model.joblib',
-    'thread_count_random_forest': '/app/models/Thread Count_RandomForest_model.joblib',
-    'thread_count_svr': '/app/models/Thread Count_SVR_model.joblib',
-    'thread_count_xgboost': '/app/models/Thread Count_XGBoost_model.joblib',
+    'total_data_aggregated_catboost': load('/app/models/Total Data Aggregated_CatBoost_model.joblib'),
+    'total_data_aggregated_knn': load('/app/models/Total Data Aggregated_KNN_model.joblib'),
+    'total_data_aggregated_lightgbm': load('/app/models/Total Data Aggregated_LightGBM_model.joblib'),
+    'total_data_aggregated_linear_regression': load('/app/models/Total Data Aggregated_LinearRegression_model.joblib'),
+    'total_data_aggregated_mlp': load('/app/models/Total Data Aggregated_MLP_model.joblib'),
+    'total_data_aggregated_random_forest': load('/app/models/Total Data Aggregated_RandomForest_model.joblib'),
+    'total_data_aggregated_svr': load('/app/models/Total Data Aggregated_SVR_model.joblib'),
+    'total_data_aggregated_xgboost': load('/app/models/Total Data Aggregated_XGBoost_model.joblib'),
 
-    'total_data_after_heuristics_catboost': '/app/models/Total Data After Heuristics_CatBoost_model.joblib',
-    'total_data_after_heuristics_knn': '/app/models/Total Data After Heuristics_KNN_model.joblib',
-    'total_data_after_heuristics_lightgbm': '/app/models/Total Data After Heuristics_LightGBM_model.joblib',
-    'total_data_after_heuristics_linear_regression': '/app/models/Total Data After Heuristics_LinearRegression_model.joblib',
-    'total_data_after_heuristics_mlp': '/app/models/Total Data After Heuristics_MLP_model.joblib',
-    'total_data_after_heuristics_random_forest': '/app/models/Total Data After Heuristics_RandomForest_model.joblib',
-    'total_data_after_heuristics_svr': '/app/models/Total Data After Heuristics_SVR_model.joblib',
-    'total_data_after_heuristics_xgboost': '/app/models/Total Data After Heuristics_XGBoost_model.joblib',
+    'total_data_compressed_catboost': load('/app/models/Total Data Compressed_CatBoost_model.joblib'),
+    'total_data_compressed_knn': load('/app/models/Total Data Compressed_KNN_model.joblib'),
+    'total_data_compressed_lightgbm': load('/app/models/Total Data Compressed_LightGBM_model.joblib'),
+    'total_data_compressed_linear_regression': load('/app/models/Total Data Compressed_LinearRegression_model.joblib'),
+    'total_data_compressed_mlp': load('/app/models/Total Data Compressed_MLP_model.joblib'),
+    'total_data_compressed_random_forest': load('/app/models/Total Data Compressed_RandomForest_model.joblib'),
+    'total_data_compressed_svr': load('/app/models/Total Data Compressed_SVR_model.joblib'),
+    'total_data_compressed_xgboost': load('/app/models/Total Data Compressed_XGBoost_model.joblib'),
 
-    'total_data_aggregated_catboost': '/app/models/Total Data Aggregated_CatBoost_model.joblib',
-    'total_data_aggregated_knn': '/app/models/Total Data Aggregated_KNN_model.joblib',
-    'total_data_aggregated_lightgbm': '/app/models/Total Data Aggregated_LightGBM_model.joblib',
-    'total_data_aggregated_linear_regression': '/app/models/Total Data Aggregated_LinearRegression_model.joblib',
-    'total_data_aggregated_mlp': '/app/models/Total Data Aggregated_MLP_model.joblib',
-    'total_data_aggregated_random_forest': '/app/models/Total Data Aggregated_RandomForest_model.joblib',
-    'total_data_aggregated_svr': '/app/models/Total Data Aggregated_SVR_model.joblib',
-    'total_data_aggregated_xgboost': '/app/models/Total Data Aggregated_XGBoost_model.joblib',
+    'total_data_filtered_catboost': load('/app/models/Total Data Filtered_CatBoost_model.joblib'),
+    'total_data_filtered_knn': load('/app/models/Total Data Filtered_KNN_model.joblib'),
+    'total_data_filtered_lightgbm': load('/app/models/Total Data Filtered_LightGBM_model.joblib'),
+    'total_data_filtered_linear_regression': load('/app/models/Total Data Filtered_LinearRegression_model.joblib'),
+    'total_data_filtered_mlp': load('/app/models/Total Data Filtered_MLP_model.joblib'),
+    'total_data_filtered_random_forest': load('/app/models/Total Data Filtered_RandomForest_model.joblib'),
+    'total_data_filtered_svr': load('/app/models/Total Data Filtered_SVR_model.joblib'),
+    'total_data_filtered_xgboost': load('/app/models/Total Data Filtered_XGBoost_model.joblib'),
 
-    'total_data_compressed_catboost': '/app/models/Total Data Compressed_CatBoost_model.joblib',
-    'total_data_compressed_knn': '/app/models/Total Data Compressed_KNN_model.joblib',
-    'total_data_compressed_lightgbm': '/app/models/Total Data Compressed_LightGBM_model.joblib',
-    'total_data_compressed_linear_regression': '/app/models/Total Data Compressed_LinearRegression_model.joblib',
-    'total_data_compressed_mlp': '/app/models/Total Data Compressed_MLP_model.joblib',
-    'total_data_compressed_random_forest': '/app/models/Total Data Compressed_RandomForest_model.joblib',
-    'total_data_compressed_svr': '/app/models/Total Data Compressed_SVR_model.joblib',
-    'total_data_compressed_xgboost': '/app/models/Total Data Compressed_XGBoost_model.joblib',
-
-    'total_data_filtered_catboost': '/app/models/Total Data Filtered_CatBoost_model.joblib',
-    'total_data_filtered_knn': '/app/models/Total Data Filtered_KNN_model.joblib',
-    'total_data_filtered_lightgbm': '/app/models/Total Data Filtered_LightGBM_model.joblib',
-    'total_data_filtered_linear_regression': '/app/models/Total Data Filtered_LinearRegression_model.joblib',
-    'total_data_filtered_mlp': '/app/models/Total Data Filtered_MLP_model.joblib',
-    'total_data_filtered_random_forest': '/app/models/Total Data Filtered_RandomForest_model.joblib',
-    'total_data_filtered_svr': '/app/models/Total Data Filtered_SVR_model.joblib',
-    'total_data_filtered_xgboost': '/app/models/Total Data Filtered_XGBoost_model.joblib',
-
-    'total_data_received_catboost': '/app/models/Total Data Received_CatBoost_model.joblib',
-    'total_data_received_knn': '/app/models/Total Data Received_KNN_model.joblib',
-    'total_data_received_lightgbm': '/app/models/Total Data Received_LightGBM_model.joblib',
-    'total_data_received_linear_regression': '/app/models/Total Data Received_LinearRegression_model.joblib',
-    'total_data_received_mlp': '/app/models/Total Data Received_MLP_model.joblib',
-    'total_data_received_random_forest': '/app/models/Total Data Received_RandomForest_model.joblib',
-    'total_data_received_svr': '/app/models/Total Data Received_SVR_model.joblib',
-    'total_data_received_xgboost': '/app/models/Total Data Received_XGBoost_model.joblib',
+    'total_data_received_catboost': load('/app/models/Total Data Received_CatBoost_model.joblib'),
+    'total_data_received_knn': load('/app/models/Total Data Received_KNN_model.joblib'),
+    'total_data_received_lightgbm': load('/app/models/Total Data Received_LightGBM_model.joblib'),
+    'total_data_received_linear_regression': load('/app/models/Total Data Received_LinearRegression_model.joblib'),
+    'total_data_received_mlp': load('/app/models/Total Data Received_MLP_model.joblib'),
+    'total_data_received_random_forest': load('/app/models/Total Data Received_RandomForest_model.joblib'),
+    'total_data_received_svr': load('/app/models/Total Data Received_SVR_model.joblib'),
+    'total_data_received_xgboost': load('/app/models/Total Data Received_XGBoost_model.joblib'),
 }
 
-for model_name, model_path in model_paths.items():
-    try:
-        if not os.path.exists(model_path):
-            print(f"Model file does not exist: {model_path}")
-            continue
-        models[model_name] = load(model_path)
-        print(f"{model_name} loaded successfully.")
-    except Exception as e:
-        print(f"Error loading {model_name}: {e}")
+@app.route('/predict/', methods=['POST'])
+def predict_next_value():
+    data = request.get_json()
+    metric = data.get('metric')
+    current_value = data.get('current_value')
+    num_predictions = data.get('num_predictions')
 
+    # Validação dos dados
+    if not metric or not isinstance(metric, str):
+        return jsonify({"error": "Invalid or missing 'metric'"}), 400
+    if metric not in models:
+        return jsonify({"error": "Metric not found"}), 404
+    if current_value is None or not isinstance(current_value, (int, float)):
+        return jsonify({"error": "Invalid or missing 'current_value'"}), 400
+    if num_predictions is None or not isinstance(num_predictions, int) or num_predictions <= 0:
+        return jsonify({"error": "Invalid or missing 'num_predictions'"}), 400
 
-class PredictionRequest(BaseModel):
-    metric: str
-    current_value: float
-    num_predictions: int
-
-
-@app.post("/predict/")
-def predict_next_value(request: PredictionRequest):
-    print(f"Received prediction request: {request.metric}")
-
-    if request.metric not in models:
-        raise HTTPException(status_code=404, detail="Metric not found")
-
-    model = models[request.metric]
+    model = models[metric]
     predictions = []
 
-    current_value = request.current_value
+    for _ in range(num_predictions):
+        next_value = model.predict(np.array([[current_value]]))[0]
+        predictions.append(next_value)
+        current_value = next_value
 
-    for _ in range(request.num_predictions):
-        try:
-            next_value = model.predict(np.array([[current_value]]))[0]
-            predictions.append(next_value)
-            current_value = next_value
-        except Exception as e:
-            print(f"Error during prediction: {e}")
-            raise HTTPException(status_code=500, detail=f"Prediction error: {e}")
+    return jsonify({"predictions": predictions})
 
-    return {"predictions": predictions}
-
-
-# Verificação final de inicialização
-print("FastAPI application started successfully.")
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=8000)
