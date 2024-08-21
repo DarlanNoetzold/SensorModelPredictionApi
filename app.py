@@ -4,6 +4,7 @@ from joblib import load
 import numpy as np
 
 app = FastAPI()
+print("teste")
 
 # Carregar os modelos
 models = {
@@ -95,6 +96,7 @@ class PredictionRequest(BaseModel):
 
 @app.post("/predict/")
 def predict_next_value(request: PredictionRequest):
+    print("teste 2")
     if request.metric not in models:
         raise HTTPException(status_code=404, detail="Metric not found")
 
