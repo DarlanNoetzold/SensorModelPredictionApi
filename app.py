@@ -105,12 +105,19 @@ def predict_next_value():
         return jsonify({"error": "Invalid or missing 'num_predictions'"}), 400
 
     model = models[metric]
+
+    # Simulação de features ausentes com zeros
+    # Supondo que o modelo espera N features, onde apenas uma é o valor atual
+    num_features = model.feature_importances_.shape[0]  # Obtém o número de features esperadas pelo modelo
+    input_data = np.zeros((1, num_features))
+    input_data[0, 0] = current_value  # Assumindo que a primeira feature é o valor atual
+
     predictions = []
 
     for _ in range(num_predictions):
-        next_value = model.predict(np.array([[current_value]]))[0]
+        next_value = model.predict(input_data)[0]
         predictions.append(next_value)
-        current_value = next_value
+        input_data[0, 0] = next_value  # Atualiza o valor atual para a próxima previsão
 
     return jsonify({"predictions": predictions})
 
