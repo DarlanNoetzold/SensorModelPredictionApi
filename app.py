@@ -115,7 +115,7 @@ def predict_next_value():
     predictions = []
 
     for _ in range(num_predictions):
-        next_value = model.predict(input_data)[0]
+        next_value = model.predict(input_data.copy())[0]  # Copiar input_data para evitar read-only array
         predictions.append(next_value)
         input_data[0, 0] = next_value  # Atualiza o valor atual para a próxima previsão
 
